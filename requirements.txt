@@ -1,0 +1,5 @@
+# The versions used to build the approved Event 001 artwork. Python 3.12.
+Pillow==11.2.1
+fonttools==4.58.4
+numpy==1.26.4
+shapely==2.1.1
