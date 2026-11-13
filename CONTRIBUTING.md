@@ -25,7 +25,7 @@ Give the event a short README with its confirmed details, links to materials, an
 
 Create `demos/`, `slides/`, `notes/`, or `recordings/` when there is something to put in them. Prefer links for large recordings and datasets. Keep credentials, attendee data, private conversations, and material you do not have permission to publish out of the repository.
 
-When introducing another generator, add its outputs to the verification script and CI template. Event 001 is a concrete example, rather than a requirement to use Python for every future project.
+When introducing another generator, add its outputs to the verification script. Event 001 is a concrete example, rather than a requirement to use Python for every future project.
 
 ## Licensing
 

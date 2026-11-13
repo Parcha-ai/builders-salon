@@ -58,7 +58,7 @@ To experiment without overwriting the checked-in artwork:
 python events/001-building-with-ai/artwork/generate.py --output-dir build/experiment
 ```
 
-`make check` rebuilds in a temporary directory, verifies the SVGs match the checked-in artwork, and checks PNG sizes, transparency, and required attribution. A [GitHub Actions workflow template](ci/artwork.yml) runs the same checks; see [ci/README.md](ci/README.md) to enable it.
+`make check` rebuilds in a temporary directory, verifies the SVGs match the checked-in artwork, and checks PNG sizes, transparency, and required attribution.
 
 ## Contribute
 
