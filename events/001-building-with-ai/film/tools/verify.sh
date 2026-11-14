@@ -9,7 +9,10 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
 cp -r "$FILM/../artwork" "$TMP/artwork"
-rsync -a --exclude build --exclude renders --exclude .hyperframes "$FILM/" "$TMP/film/"
+mkdir "$TMP/film"
+for f in "$FILM"/*; do
+  case "$(basename "$f")" in build|renders) ;; *) cp -R "$f" "$TMP/film/" ;; esac
+done
 cd "$TMP/film"
 "$PY311" tools/prep.py >/dev/null
 "$PY" tools/field.py >/dev/null

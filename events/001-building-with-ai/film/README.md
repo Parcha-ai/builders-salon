@@ -8,7 +8,7 @@ The only outside inputs are the two hosts' official logos, the five speakers' he
 
 ## Render it
 
-You need Node 22 or newer and ffmpeg. HyperFrames downloads its own headless Chrome the first time it runs.
+You need git, make, Node 22 or newer, and ffmpeg. HyperFrames downloads its own headless Chrome the first time it runs. Tested on Ubuntu 24.04; the scripts avoid GNU-only flags, so macOS should work too.
 
 ```sh
 make film          # writes film/renders/builders-salon-001-16x9.mp4 and -9x16.mp4
