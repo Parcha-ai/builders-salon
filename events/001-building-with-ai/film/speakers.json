@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "source": "Bios and headshots supplied by the event organizer; bios preserved as supplied. Order follows the organizer’s list, not a confirmed running order.",
+  "speakers": [
+    {
+      "id": "xiomara-figueroa",
+      "name": "Xiomara Figueroa",
+      "title": "Lead Engineer",
+      "organization": "Red Ventures",
+      "headshot_original_name": "xiomara.jpeg",
+      "bio": "Lead engineer at Red Ventures, building an agentic platform for enterprise businesses. Xiomara previously took a startup from zero to acquisition as its CTO. She has nearly 10 years of full-stack experience and has spent the last three working almost entirely in AI. Outside her day job, she co-founded and launched AMI, an AI-powered women's health app for women dealing with hormonal and chronic conditions like endometriosis and PCOS.",
+      "links": [],
+      "headshot": "assets/headshots/xiomara-figueroa.jpeg",
+      "headshot_dimensions": {
+        "width": 2026,
+        "height": 2048
+      },
+      "order": 1
+    },
+    {
+      "id": "bryan-collazo-santiago",
+      "name": "Bryan Collazo Santiago",
+      "title": "Senior Software Engineer",
+      "organization": "GREP.ai",
+      "headshot_original_name": "bryan.jpeg",
+      "bio": "Senior Software Engineer and former CTO with over 10 years of experience. Bryan currently builds AI agents for enterprises at GREP.ai. He holds a Bachelor's degree and an M.Eng. in Artificial Intelligence from MIT.",
+      "links": [
+        {
+          "label": "GREP.ai",
+          "url": "https://grep.ai/"
+        }
+      ],
+      "headshot": "assets/headshots/bryan-collazo-santiago.jpeg",
+      "headshot_dimensions": {
+        "width": 512,
+        "height": 512
+      },
+      "order": 2
+    },
+    {
+      "id": "christian-rodriguez-encarnacion",
+      "name": "Christian Rodríguez Encarnación",
+      "title": "Engineer",
+      "organization": "Parcha Labs",
+      "headshot_original_name": "chris.jpeg",
+      "bio": "Engineer at Parcha Labs, where he focuses on the system architecture and agentic infrastructure behind GREP.ai. He's passionate about building with AI coding agents and the evolving software development landscape.",
+      "links": [
+        {
+          "label": "GREP.ai",
+          "url": "https://grep.ai/"
+        }
+      ],
+      "headshot": "assets/headshots/christian-rodriguez-encarnacion.jpeg",
+      "headshot_dimensions": {
+        "width": 512,
+        "height": 512
+      },
+      "order": 3
+    },
+    {
+      "id": "rigoberto-miranda",
+      "name": "Rigoberto Miranda",
+      "title": "Principal Software Engineer and Lead of AI R&D",
+      "organization": "Red Ventures Puerto Rico",
+      "headshot_original_name": "rigoberto.jpeg",
+      "bio": "Principal Software Engineer and Lead of AI R&D at Red Ventures Puerto Rico. Rigoberto also builds CodeXpr.ai, an AI legal research assistant for Puerto Rico's legal system, which earned a technology award from the Colegio de Abogados y Abogadas de Puerto Rico. He studied at the Polytechnic University of Puerto Rico.",
+      "links": [
+        {
+          "label": "CodeXpr.ai",
+          "url": "https://codexpr.ai/"
+        }
+      ],
+      "headshot": "assets/headshots/rigoberto-miranda.jpeg",
+      "headshot_dimensions": {
+        "width": 1080,
+        "height": 1620
+      },
+      "order": 4
+    },
+    {
+      "id": "miguel-rios-berrios",
+      "name": "Miguel Rios Berrios",
+      "title": "Founder",
+      "organization": "Parcha Labs",
+      "headshot_original_name": "miguel.png",
+      "bio": "Founder of Parcha Labs, the makers of GREP.ai and AgentRun.ai. He was Senior Director of Engineering at Brex, leading the Platform Engineering organization, and Head of Data Science at Twitter.",
+      "links": [
+        {
+          "label": "GREP.ai",
+          "url": "https://grep.ai/"
+        },
+        {
+          "label": "AgentRun.ai",
+          "url": "https://agentrun.ai/"
+        }
+      ],
+      "headshot": "assets/headshots/miguel-rios-berrios.png",
+      "headshot_dimensions": {
+        "width": 800,
+        "height": 800
+      },
+      "order": 5
+    }
+  ]
+}

@@ -9,3 +9,6 @@
 *.ttf binary
 # Preserve the upstream font license verbatim, including its whitespace.
 brand/fonts/OFL.txt -whitespace
+*.jpg binary
+*.jpeg binary
+*.wav binary

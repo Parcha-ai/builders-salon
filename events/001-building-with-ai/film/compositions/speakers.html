@@ -1,0 +1,319 @@
+<template>
+  <style>
+    @font-face { font-family: "BS Mono"; src: url("assets/fonts/JetBrainsMono-Medium.ttf") format("truetype"); font-weight: 500; }
+    @font-face { font-family: "BS Mono"; src: url("assets/fonts/JetBrainsMono-SemiBold.ttf") format("truetype"); font-weight: 600; }
+    #root { position: absolute; inset: 0; overflow: hidden; font-family: "BS Mono", monospace; background: var(--color-ink, #20221f); color: var(--color-ground, #f4f0e7); }
+    #sp-canvas { position: absolute; left: 0; top: 0; }
+    .sp-photo { position: absolute; display: block; }
+    .sp-text { position: absolute; top: 560px; width: 820px; transform: translateY(-50%); display: flex; flex-direction: column; }
+    .sp-label { font-size: 28px; font-weight: 600; letter-spacing: 0.04em; color: var(--color-accent, #d74327); margin-bottom: 26px; white-space: pre; }
+    .sp-name { font-size: 80px; font-weight: 600; line-height: 1.06; white-space: pre; }
+    .sp-rule { width: 96px; height: 3px; margin: 32px 0 30px; background: var(--color-ground, #f4f0e7); opacity: 0.55; transform-origin: 0 50%; }
+    .sp-title { font-size: 40px; font-weight: 500; line-height: 1.25; color: #c9c4b9; }
+    .sp-org { font-size: 40px; font-weight: 600; line-height: 1.25; margin-top: 10px; color: var(--color-accent, #d74327); }
+    .ln-item { position: absolute; display: flex; flex-direction: column; }
+    .ln-name { font-size: 30px; font-weight: 600; line-height: 1.2; white-space: pre; }
+    .ln-org { font-size: 20px; font-weight: 600; line-height: 1.2; margin-top: 10px; color: var(--color-accent, #d74327); white-space: pre; }
+    #ln-label { position: absolute; font-size: 26px; font-weight: 600; letter-spacing: 0.04em; line-height: 1; color: var(--color-accent, #d74327); white-space: pre; }
+    .sp-index { position: absolute; left: 96px; top: 1390px; font-size: 400px; font-weight: 600; line-height: 1; color: transparent; -webkit-text-stroke: 2px var(--color-accent, #d74327); opacity: 0.55; white-space: pre; }
+  </style>
+  <div id="root" data-composition-id="speakers" data-width="1920" data-height="1080">
+    <canvas id="sp-canvas"></canvas>
+    <div id="sp-stage"></div>
+    <div id="sp-line" data-layout-allow-overlap><div id="ln-label">SESSION 001 / SPEAKERS</div></div>
+  </div>
+  <script>
+    (function () {
+      // global 10.85-25.35 s (local 0 = 10.85). Each speaker is drawn first as a halftone of code
+      // glyphs (sampled from the real headshot), which then resolves cell by cell into the photo.
+      // Between speakers the glyphs fly from one face to the next. After the line-up all five
+      // pour into a big B, which peels toward the camera while the end card's paper floods in.
+      const { seg, lerp, RED, INK, PAPER, REEL, W, H, PL, COL } = BS;
+      const stage = document.getElementById("sp-stage");
+      const cv = BS.setupCanvas(document.getElementById("sp-canvas"), W, H, 1.5);
+      const N = BS.D.speakers.length;
+      const BOX = 560, EXT = REEL ? [90, -90] : [110, -110];
+      const STEP = 2.5, S0 = 0.15;
+      const at = (k) => S0 + k * STEP; // local time speaker k's face starts to form
+      const field = new BS.Field(4000, 23);
+
+      function wrapName(name, max) {
+        const lines = [""];
+        for (const w of name.split(" ")) {
+          const cur = lines[lines.length - 1];
+          if (!cur) lines[lines.length - 1] = w;
+          else if ((cur + " " + w).length <= max) lines[lines.length - 1] = cur + " " + w;
+          else lines.push(w);
+        }
+        return lines.join("\n");
+      }
+
+      const sp = BS.D.speakers.map((s, k) => {
+        const { width: iw, height: ih } = s.headshot_dimensions;
+        const sc = Math.min(BOX / iw, BOX / ih);
+        const w = Math.round(iw * sc), h = Math.round(ih * sc);
+        let x, y, textStyle;
+        if (REEL) {
+          x = Math.round((W - (w + EXT[0])) / 2);
+          y = 830 - h;
+          textStyle = "left:96px;top:880px;width:888px;transform:none";
+        } else {
+          const left = k % 2 === 0;
+          x = Math.round((left ? 560 : 1360) - w / 2);
+          y = Math.round(570 - h / 2);
+          textStyle = `left:${left ? 1000 : 140}px`;
+        }
+        const wrap = document.createElement("div");
+        wrap.innerHTML = `
+          <img class="sp-photo" src="${s.src}" alt="${s.name}" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px" />
+          <div class="sp-text" style="${textStyle}">
+            <div class="sp-label"></div>
+            <div class="sp-name"${REEL ? ' style="font-size:72px"' : ""}></div>
+            <div class="sp-rule"${REEL ? ' style="margin:24px 0 22px"' : ""}></div>
+            <div class="sp-title"${REEL ? ' style="font-size:38px"' : ""}></div>
+            <div class="sp-org"${REEL ? ' style="font-size:38px"' : ""}></div>
+          </div>
+          ${REEL ? `<div class="sp-index">0${k + 1}</div>` : ""}`;
+        stage.appendChild(wrap);
+        const q = (c) => wrap.querySelector(c);
+        q(".sp-label").textContent = `SPEAKER 0${k + 1} / 0${N}`;
+        q(".sp-name").textContent = wrapName(s.name, REEL ? 19 : 17);
+        q(".sp-title").textContent = s.title;
+        q(".sp-org").textContent = s.organization;
+        const dec = ["label", "name", "title", "org"].map((c, j) => new BS.Decoder(q(".sp-" + c), { seed: 40 + k * 7 + j }));
+        const idx = REEL ? new BS.Decoder(q(".sp-index"), { seed: 90 + k }) : null;
+        return {
+          k, x, y, w, h, dec, idx, img: q(".sp-photo"), rule: q(".sp-rule"),
+          shape: field.shape(BS.portraitShape(s.id, { x, y, w, h }, k)), grid: BS.FD.portraits[s.id],
+        };
+      });
+
+      // the glyphs arrive from everywhere (invisible), and leave into the end card's B
+      const scatter = { pts: Array.from({ length: 4000 }, (_, i) => ({ x: BS.hash(i, 1) * W, y: BS.hash(i, 2) * H, c: COL.red, a: 0, s: 14, g: null })) };
+      const sStart = field.shape(scatter);
+      const sEnd = field.shape(BS.bShape(PL.END_B, REEL ? 11 : 12, COL.red));
+      // morph segments: [from, to, start, end]
+      const segs = [[sStart, sp[0].shape, 0.0, 0.6]];
+      for (let k = 1; k < N; k++) segs.push([sp[k - 1].shape, sp[k].shape, at(k) - 0.15, at(k) + 0.45]);
+
+      // ---- the line-up. The fifth photo never dissolves: the camera pulls back from it and
+      // the other four are standing next to it, one room. They land on the 24.0 s hit, hold dead
+      // still through a one-bar break, then all five pour into the B that opens the end card.
+      const PB0 = at(N - 1) + 2.0, PB1 = PB0 + 0.75; // 23.0-23.75 global: pull-back
+      const HIT = PB0 + 1.0;                           // 24.0: impact, frames flash
+      const X0 = PB0 + 1.4;                            // 24.4: the photos let go, pour into the B and peel
+      const LC = REEL ? 0.32 : 0.5;                   // line-up photo scale vs the solo hold
+      const LIN = sp.map((P, k) => {
+        const w = P.w * LC, h = P.h * LC;
+        // 9:16: a programme list. 16:9: a rising stair, the stepped profile of the architecture
+        return REEL ? { x: 96, y: 456 + k * 224, w, h } : { x: 120 + k * 340, y: 530 - k * 82, w, h };
+      });
+      const lineHost = document.getElementById("sp-line");
+      BS.lay({ "ln-label": REEL ? { left: "96px", top: "376px" } : { left: "120px", top: "202px", fontSize: "28px" } });
+      const lnLabel = new BS.Decoder(document.getElementById("ln-label"), { seed: 71 });
+      const lnDec = sp.map((P, k) => {
+        const L = LIN[k], s = BS.D.speakers[k];
+        const el = document.createElement("div");
+        el.className = "ln-item";
+        el.style.cssText = REEL
+          ? `left:344px;top:${L.y + 90}px;width:640px;transform:translateY(-50%)`
+          : `left:${L.x}px;top:${L.y + 280 + 30}px;width:320px`;
+        el.innerHTML = `<div class="ln-name"${REEL ? ' style="font-size:33px"' : ""}></div><div class="ln-org"${REEL ? ' style="font-size:26px"' : ""}></div>`;
+        el.children[0].textContent = REEL ? s.name : wrapName(s.name, 17);
+        el.children[1].textContent = s.organization;
+        lineHost.appendChild(el);
+        return [new BS.Decoder(el.children[0], { seed: 120 + k * 3 }), new BS.Decoder(el.children[1], { seed: 121 + k * 3 })];
+      });
+      // glyph points the five photos release when they let go (every other cell of each halftone grid)
+      const linePts = [];
+      sp.forEach((P, k) => {
+        const G = P.grid, L = LIN[k], cw = L.w / G.cols, ch = L.h / G.rows;
+        for (let r = 0; r < G.rows; r += 2)
+          for (let c = 0; c < G.cols; c += 2) {
+            const i = r * G.cols + c, v = +G.v[i] / 9, red = G.e[i] === "1";
+            if (!red && v < 0.2) continue;
+            linePts.push({ x: L.x + (c + 1) * cw, y: L.y + (r + 1) * ch + 3, c: red ? COL.red : COL.paper, a: 1, s: Math.max(6, cw * 3.2 * (red ? 0.9 : Math.pow(v, 0.9))), g: BS.poolChar(i, 60 + k), cell: i, who: k });
+          }
+      });
+      const sLine = field.shape({ pts: linePts });
+      segs.push([sLine, sEnd, X0, X0 + 0.32]);
+      const camE = BS.ease("power3.inOut");
+      /** line-up camera: world = the line-up layout; at PB0 the fifth slot sits exactly on the solo hold */
+      function cam(t) {
+        const e = camE(BS.clamp((t - PB0) / (PB1 - PB0)));
+        const s = Math.exp(Math.log(1 / LC) * (1 - e));
+        const A = LIN[N - 1], Hd = sp[N - 1];
+        const ax = lerp(Hd.x, A.x, e), ay = lerp(Hd.y, A.y, e);
+        return { s, f: (x, y) => [ax + (x - A.x) * s, ay + (y - A.y) * s] };
+      }
+      const reveal = (k) => PB0 + 0.06 + (N - 2 - k) * 0.07; // nearest slot first
+      /** 0 = nothing, 1 = photo tile, for cell i of line-up slot k */
+      function lineQ(k, i, t) {
+        const P = sp[k], G = P.grid;
+        const d = P.delay[i] * 0.5;
+        const qin = k === N - 1 ? 1 : seg(t, reveal(k) + 0.1 + d, reveal(k) + 0.26 + d, "power2.out");
+        if (t < X0) return qin;
+        const along = REEL ? Math.floor(i / G.cols) / G.rows : (i % G.cols) / G.cols;
+        const xd = k * 0.025 + along * 0.06 + BS.hash(i, 500 + k) * 0.05;
+        return qin * (1 - seg(t, X0 + xd, X0 + xd + 0.14, "power2.in"));
+      }
+      /** draws a photo as tiles; qf(cell) 0..1. returns true when every tile is whole */
+      function drawTiles(ctx, P, x0, y0, w, h, qf) {
+        const img = P.img, iw = img.naturalWidth, ih = img.naturalHeight;
+        if (!iw) return false;
+        const G = P.grid, cw = w / G.cols, ch = h / G.rows;
+        let all = true;
+        for (let r = 0; r < G.rows; r++)
+          for (let c = 0; c < G.cols; c++) {
+            const q = qf(r * G.cols + c);
+            if (q < 1) all = false;
+            if (q <= 0) continue;
+            const s = q >= 1 ? 1 : 0.15 + 0.85 * q;
+            const x = x0 + c * cw + (cw * (1 - s)) / 2, y = y0 + r * ch + (ch * (1 - s)) / 2;
+            ctx.drawImage(img, (c / G.cols) * iw, (r / G.rows) * ih, iw / G.cols, ih / G.rows, x, y, cw * s + 0.6, ch * s + 0.6);
+            if (q < 1) {
+              ctx.globalAlpha = (1 - q) * 0.85;
+              ctx.fillStyle = RED;
+              ctx.fillRect(x, y, cw * s + 0.6, ch * s + 0.6);
+              ctx.globalAlpha = 1;
+            }
+          }
+        return all;
+      }
+      const mixHex = (u) => {
+        const a = COL.red, b = COL.paper;
+        return `rgb(${Math.round(lerp(a[0], b[0], u))},${Math.round(lerp(a[1], b[1], u))},${Math.round(lerp(a[2], b[2], u))})`;
+      };
+      function renderLine(ctx, t) {
+        const c = cam(t);
+        const moving = t < PB1;
+        const hit = 1 - seg(t, HIT, HIT + 0.3, "power2.out");
+        const pulse = t >= HIT - 0.001 ? hit : 0;
+        for (let k = 0; k < N; k++) {
+          const P = sp[k], L = LIN[k];
+          P.held = false;
+          const r0 = reveal(k), last = k === N - 1;
+          if (!last && t < r0) continue;
+          const [x, y] = c.f(L.x, L.y), w = L.w * c.s, h = L.h * c.s, ks = LC * c.s;
+          const gone = seg(t, X0 + 0.03 + k * 0.025, X0 + 0.19 + k * 0.025, "power2.in"); // the slab retracts into its face
+          if (gone < 1) {
+            ctx.save();
+            ctx.globalAlpha = 1 - seg(gone, 0.6, 1);
+            BS.drawSlab(ctx, { x, y, w, h }, [EXT[0] * ks, EXT[1] * ks], 12,
+              { frame: last ? 1 : seg(t, r0, r0 + 0.22, "power2.inOut"), slices: (last ? 1 : seg(t, r0 + 0.04, r0 + 0.4)) * (1 - gone) },
+              { fill: INK, stroke: pulse > 0.01 ? mixHex(pulse * 0.9) : RED, front: Math.max(2.5, 4 * ks) + 3 * pulse, side: Math.max(0.9, 1.6 * ks) + 0.8 * pulse });
+            ctx.restore();
+          }
+          const whole = t < X0 && (last || t >= r0 + 0.26 + 0.21 + 0.001);
+          if (whole) {
+            // the DOM photo holds once the camera has stopped; in motion the same picture is drawn here
+            if (moving) { if (P.img.naturalWidth) ctx.drawImage(P.img, x, y, w, h); }
+            else P.held = true;
+          } else drawTiles(ctx, P, x, y, w, h, (i) => lineQ(k, i, t));
+        }
+      }
+
+      // the resolve: the code portrait turns into the photo cell by cell. A wave leaves the face,
+      // each cell's glyph collapses as its photo tile grows in with a vermilion flash; once every
+      // tile has landed the unaltered photo element takes over (same pixels, same box).
+      const RES = 0.85, RES_OUT = 2.0, TILE = 0.2, WAVE = 0.42;
+      for (const P of sp) {
+        const G = P.grid, n = G.cols * G.rows;
+        P.delay = new Float32Array(n);
+        const fx = G.cols * 0.5, fy = G.rows * 0.36;
+        let mx = 0;
+        for (let r = 0; r < G.rows; r++) for (let c = 0; c < G.cols; c++) mx = Math.max(mx, Math.hypot(c - fx, r - fy));
+        for (let r = 0; r < G.rows; r++)
+          for (let c = 0; c < G.cols; c++) {
+            const k = r * G.cols + c;
+            P.delay[k] = (Math.hypot(c - fx, r - fy) / mx) * WAVE * 0.8 + BS.hash(k, 300 + P.k) * WAVE * 0.2;
+          }
+      }
+      /** 0 = glyph, 1 = photo tile, for cell k of speaker P at time t */
+      function cellQ(P, k, t) {
+        const a = at(P.k), d = P.delay[k];
+        const qin = seg(t, a + RES + d, a + RES + d + TILE, "power2.out");
+        const qout = P.k === N - 1 ? 0 : seg(t, a + RES_OUT + (WAVE - d) * 0.6, a + RES_OUT + (WAVE - d) * 0.6 + TILE * 0.8, "power2.in");
+        return qin * (1 - qout);
+      }
+
+      function render(t) {
+        cv.clear();
+        const ctx = cv.ctx;
+        BS.drawGround(ctx, t, seg(t, 0.0, 0.6, "power2.out"));
+        for (const P of sp) {
+          const a = at(P.k);
+          const out = seg(t, a + 2.3, a + 2.5);
+          P.full = false;
+          if (t < a - 0.15 || t > a + 2.85 || (P.k === N - 1 && t >= PB0)) continue;
+          // slab behind the card
+          ctx.save();
+          ctx.globalAlpha = 1 - out;
+          BS.drawSlab(ctx, { x: P.x, y: P.y, w: P.w, h: P.h }, EXT, 12,
+            { frame: seg(t, a + 0.25, a + 0.55, "power2.inOut"), slices: seg(t, a + 0.35, a + 0.85) }, { fill: INK, stroke: RED, front: 4, side: 1.6 });
+          ctx.restore();
+          // the paper card the code portrait is printed on, laid cell by cell from the face out
+          const G = P.grid, cw = P.w / G.cols, ch = P.h / G.rows;
+          ctx.fillStyle = PAPER;
+          const cardIn = t >= a + 0.05 + WAVE + 0.2 && t < a + 2.3;
+          if (cardIn) ctx.fillRect(P.x, P.y, P.w, P.h);
+          else
+            for (let r = 0; r < G.rows; r++)
+              for (let c = 0; c < G.cols; c++) {
+                const d = P.delay[r * G.cols + c];
+                const q = seg(t, a - 0.05 + d, a + 0.15 + d, "power2.out") * (1 - seg(t, a + 2.3 + (WAVE - d) * 0.5, a + 2.42 + (WAVE - d) * 0.5, "power2.in"));
+                if (q <= 0) continue;
+                const s = q >= 1 ? 1 : q;
+                ctx.fillRect(P.x + c * cw + (cw * (1 - s)) / 2, P.y + r * ch + (ch * (1 - s)) / 2, cw * s + 0.6, ch * s + 0.6);
+              }
+          // photo tiles
+          const live = t > a + RES && t < a + RES_OUT + WAVE + TILE + 0.05;
+          P.full = live && drawTiles(ctx, P, P.x, P.y, P.w, P.h, (k) => cellQ(P, k, t));
+        }
+        // the glyph field
+        let s = segs[0];
+        for (const g of segs) if (t >= g[2]) s = g;
+        const p = seg(t, s[2], s[3]);
+        const toEnd = s[1] === sEnd;
+        if (t >= PB0) renderLine(ctx, t);
+        else for (const P of sp) P.held = false;
+        const fromLine = s[0] === sLine;
+        const mod = (pt) => {
+          if (pt.who === undefined) return [1, 1];
+          const q = fromLine ? lineQ(pt.who, pt.cell, t) : cellQ(sp[pt.who], pt.cell, t);
+          return [1 - q, 1 - 0.7 * q];
+        };
+        field.draw(ctx, s[0], s[1], p, { t, spread: 0.42, arc: toEnd ? 0.3 : 0.28, shimmer: 0.02, lift: 0.7, mod, alpha: 1 - seg(t, X0 + 0.26, X0 + 0.36) });
+        // the glyphs land as the B's red line stack, which peels toward the camera layer by layer
+        // (as at 10 s) while the end card's paper lays in tile by tile from inside the stem
+        if (t >= X0 + 0.22) {
+          BS.drawTileFlood(ctx, BS.peelAnchor(PL.END_B), t, X0 + 0.52, 0.28, PAPER);
+          BS.drawPeel(ctx, PL.END_B, t, { T0: X0 + 0.34, k: 0.62, dur: (i) => 0.2 - 0.004 * i, alpha: seg(t, X0 + 0.22, X0 + 0.32), grow: seg(t, X0 + 0.24, X0 + 0.4, "power3.out") });
+        }
+
+        lnLabel.frame(t, { in: PB0 + 0.4, stagger: 0.01, dur: 0.12, out: X0 - 0.06, outStagger: 0.003 });
+        for (const P of sp) {
+          const a = at(P.k);
+          // the real photo element holds once every tile has landed
+          const L = P.held ? LIN[P.k] : P;
+          P.img.style.left = L.x + "px"; P.img.style.top = L.y + "px"; P.img.style.width = L.w + "px"; P.img.style.height = L.h + "px";
+          P.img.style.opacity = P.full || P.held ? 1 : 0;
+          const o = a + 2.05;
+          P.dec[0].frame(t, { in: a + 0.25, stagger: 0.008, dur: 0.12, out: o, outStagger: 0.003 });
+          P.dec[1].frame(t, { in: a + 0.32, stagger: 0.014, dur: 0.16, out: o, outStagger: 0.004 });
+          P.dec[2].frame(t, { in: a + 0.55, stagger: 0.006, dur: 0.14, out: o + 0.04, outStagger: 0.002 });
+          P.dec[3].frame(t, { in: a + 0.65, stagger: 0.008, dur: 0.14, out: o + 0.06, outStagger: 0.002 });
+          if (P.idx) P.idx.frame(t, { in: a + 0.2, stagger: 0.06, dur: 0.3, out: o, outStagger: 0.04 });
+          lnDec[P.k][0].frame(t, { in: PB1 - 0.22 + P.k * 0.03, stagger: 0.006, dur: 0.12, out: X0 - 0.04 + P.k * 0.03, outStagger: 0.002 });
+          lnDec[P.k][1].frame(t, { in: PB1 - 0.14 + P.k * 0.03, stagger: 0.006, dur: 0.12, out: X0 - 0.02 + P.k * 0.03, outStagger: 0.002 });
+          P.rule.style.transform = `scaleX(${seg(t, a + 0.5, a + 0.9, "expo.out") * (1 - seg(t, o, o + 0.2, "power2.in"))})`;
+        }
+      }
+      const tl = gsap.timeline({ paused: true });
+      const proxy = { v: 0 };
+      tl.to(proxy, { v: 1, duration: 14.5, ease: "none", onUpdate: () => render(tl.time()) }, 0);
+      render(0);
+      window.__timelines["speakers"] = tl;
+    })();
+  </script>
+</template>

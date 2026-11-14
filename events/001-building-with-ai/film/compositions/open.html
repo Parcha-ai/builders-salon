@@ -1,0 +1,162 @@
+<template>
+  <style>
+    @font-face { font-family: "BS Mono"; src: url("assets/fonts/JetBrainsMono-Medium.ttf") format("truetype"); font-weight: 500; }
+    @font-face { font-family: "BS Mono"; src: url("assets/fonts/JetBrainsMono-SemiBold.ttf") format("truetype"); font-weight: 600; }
+    #root { position: absolute; inset: 0; overflow: hidden; font-family: "BS Mono", monospace; color: var(--color-ink, #20221f); }
+    #op-punch { position: absolute; inset: 0; }
+    #op-canvas { position: absolute; left: 0; top: 0; }
+    #op-line { position: absolute; left: 0; top: 196px; width: 1920px; text-align: center; font-size: 52px; font-weight: 500; line-height: 1.2; white-space: pre; }
+    #op-line b { font-weight: 600; }
+    #op-line i { font-style: normal; color: var(--color-accent, #d74327); }
+    .op-logo { position: absolute; display: block; opacity: 0; }
+  </style>
+  <div id="root" data-composition-id="open" data-width="1920" data-height="1080">
+    <div id="op-punch">
+      <canvas id="op-canvas"></canvas>
+      <img id="op-parcha" class="op-logo" src="assets/img/parcha-official-purple.svg" alt="Parcha" />
+      <img id="op-piloto" class="op-logo" src="assets/img/piloto-151-official-white.png" alt="Piloto 151" />
+      <div id="op-line"><b>Parcha Labs Inc</b> and <b>Piloto 151</b> <i>present</i></div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      // 0-2.6 s. Two matched extruded cards (the speakers' construction): Parcha on paper, Piloto on ink.
+      // The code ground flies onto the cards as dense glyph versions of both logos, which then resolve
+      // tile by tile (a sweep, vermilion flash per tile) into the official artwork, complete on the
+      // 1.0 s hit. At 1.75 s they turn back into glyphs and pour into the B (lands 2.5 s, geo takes over).
+      const { seg, lerp, REEL, W, H, PL, COL, PAPER, INK, RED } = BS;
+      const line = document.getElementById("op-line");
+      if (REEL) {
+        line.innerHTML = "<b>Parcha Labs Inc</b>\nand <b>Piloto 151</b>\n<i>present</i>";
+        BS.lay({ "op-line": { top: "224px", width: W + "px", fontSize: "64px" } });
+      }
+
+      // cards and logos, optically balanced: Parcha (full-bleed SVG, 666x150) by width;
+      // Piloto (1180x650 PNG, content 45-1140 x 26-599) by its content height
+      const L = REEL
+        ? { cw: 780, ch: 380, ext: [46, -46], cards: [[110, 500], [110, 980]], pw: 600, ph: 250 }
+        : { cw: 700, ch: 400, ext: [50, -50], cards: [[180, 370], [990, 370]], pw: 530, ph: 256 };
+      const cards = L.cards.map(([x, y], i) => ({ x, y, w: L.cw, h: L.ch, fill: i ? INK : PAPER }));
+      const cc = (c) => [c.x + c.w / 2, c.y + c.h / 2];
+      const pa = (() => { const [cx, cy] = cc(cards[0]); const w = L.pw, h = (w * 150) / 666; return { x: cx - w / 2, y: cy - h / 2, w, h }; })();
+      const pi = (() => { const [cx, cy] = cc(cards[1]); const s = L.ph / 573; return { x: cx - 592.5 * s, y: cy - 312.5 * s, w: 1180 * s, h: 650 * s }; })();
+      const imgs = { parcha: document.getElementById("op-parcha"), piloto: document.getElementById("op-piloto") };
+      const boxes = { parcha: pa, piloto: pi };
+      for (const k in boxes) BS.lay({ ["op-" + k]: { left: boxes[k].x + "px", top: boxes[k].y + "px", width: boxes[k].w + "px", height: boxes[k].h + "px" } });
+
+      const dec = new BS.Decoder(line, { seed: 7 });
+      const cv = BS.setupCanvas(document.getElementById("op-canvas"), W, H, 2);
+      const PARCHA_PURPLE = [93, 95, 239]; // #5D5FEF, the Parcha mark's own colour
+      const field = new BS.Field(3600, 11);
+      const sCode = field.shape(BS.codeShape());
+      const sLogos = field.shape(BS.merge(BS.logoShape("parcha", pa, PARCHA_PURPLE), BS.logoShape("piloto", pi, COL.paper)));
+      const sB = field.shape(BS.bShape(PL.HERO, REEL ? 9 : 12, COL.red));
+
+      // resolve timing: a sweep across the frame (left to right; top to bottom on the reel)
+      const RES = 0.58, WAVE = 0.3, TILE = 0.12, OUT = 1.75, OUTW = 0.15, OUTT = 0.1;
+      const grids = {};
+      for (const name of ["parcha", "piloto"]) {
+        const G = BS.FD.logos[name], b = boxes[name], cell = b.w / G.cols;
+        const cells = [];
+        for (let r = 0; r < G.rows; r++)
+          for (let c = 0; c < G.cols; c++) {
+            const k = r * G.cols + c;
+            if (G.a[k] !== "1") continue;
+            const x = b.x + c * cell, y = b.y + r * cell;
+            const u = REEL ? y / H : x / W;
+            cells.push({ k, c, r, x, y, d: u * WAVE * 0.85 + BS.hash(k, name.length) * WAVE * 0.15 });
+          }
+        const byK = new Float32Array(G.cols * G.rows);
+        for (const q of cells) byK[q.k] = q.d;
+        grids[name] = { G, b, cell, cells, byK, cache: null };
+      }
+      const qOf = (d, t) => seg(t, RES + d, RES + d + TILE, "power2.out") * (1 - seg(t, OUT + (WAVE - d) * (OUTW / WAVE), OUT + (WAVE - d) * (OUTW / WAVE) + OUTT, "power2.in"));
+      const FULL_IN = RES + WAVE + TILE, FULL_OUT = OUT;
+      // the artwork, rasterised once at 2x its drawn size, is the tile source
+      function cacheOf(g, img) {
+        if (g.cache || !img.complete || !img.naturalWidth) return g.cache;
+        const c = document.createElement("canvas");
+        c.width = Math.round(g.b.w * 2);
+        c.height = Math.round(g.b.h * 2);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        g.cache = c;
+        return c;
+      }
+
+      function drawCards(ctx, t) {
+        const frame = seg(t, 0.05, 0.35, "power2.inOut"), slices = seg(t, 0.15, 0.6);
+        const out = seg(t, 2.0, 2.3);
+        if (t <= 0.05 || out >= 1) return;
+        for (const c of cards) {
+          ctx.save();
+          ctx.globalAlpha = 1 - out;
+          BS.drawSlab(ctx, c, L.ext, 10, { frame, slices }, { fill: c.fill, stroke: RED, front: 3, side: 1.4 });
+          ctx.restore();
+          // the card face is laid in tiles from its centre, and taken up the same way
+          const TS = 20, cols = Math.ceil(c.w / TS), rows = Math.ceil(c.h / TS);
+          const [cx, cy] = cc(c), mx = Math.hypot(c.w / 2, c.h / 2);
+          ctx.fillStyle = c.fill;
+          if (t > 0.6 && t < 1.95) { ctx.fillRect(c.x, c.y, c.w, c.h); continue; }
+          for (let r = 0; r < rows; r++)
+            for (let k = 0; k < cols; k++) {
+              const x = c.x + k * TS, y = c.y + r * TS, w = Math.min(TS, c.x + c.w - x), h = Math.min(TS, c.y + c.h - y);
+              const d = (Math.hypot(x + w / 2 - cx, y + h / 2 - cy) / mx) * 0.3;
+              const q = seg(t, 0.05 + d, 0.2 + d, "power2.out") * (1 - seg(t, 1.95 + (0.3 - d) * 0.6, 2.07 + (0.3 - d) * 0.6, "power2.in"));
+              if (q <= 0) continue;
+              ctx.fillRect(x + (w * (1 - q)) / 2, y + (h * (1 - q)) / 2, w * q + 0.5, h * q + 0.5);
+            }
+        }
+      }
+
+      function drawTiles(ctx, t) {
+        if (t < RES || t >= OUT + OUTW + OUTT) return;
+        if (t >= FULL_IN && t < FULL_OUT) return; // the artwork elements are showing
+        for (const name in grids) {
+          const g = grids[name], src = cacheOf(g, imgs[name]);
+          if (!src) continue;
+          const sx = src.width / g.b.w;
+          for (const q of g.cells) {
+            const v = qOf(q.d, t);
+            if (v <= 0) continue;
+            const s = v >= 1 ? 1 : 0.2 + 0.8 * v, cs = g.cell;
+            const x = q.x + (cs * (1 - s)) / 2, y = q.y + (cs * (1 - s)) / 2;
+            ctx.drawImage(src, (q.x - g.b.x) * sx, (q.y - g.b.y) * sx, cs * sx, cs * sx, x, y, cs * s + 0.4, cs * s + 0.4);
+            if (v < 1 && g.G.m[q.k] === "1") {
+              ctx.globalAlpha = (1 - v) * 0.9;
+              ctx.fillStyle = RED;
+              ctx.fillRect(x, y, cs * s + 0.4, cs * s + 0.4);
+              ctx.globalAlpha = 1;
+            }
+          }
+        }
+      }
+
+      const punch = document.getElementById("op-punch");
+      punch.style.transformOrigin = `${W / 2}px ${H / 2}px`;
+      function render(t) {
+        dec.frame(t, { in: 0, pre: 1, stagger: 0.009, dur: 0.14, out: 1.9, outStagger: 0.004 });
+        const art = t >= FULL_IN && t < FULL_OUT ? 1 : 0;
+        imgs.parcha.style.opacity = art;
+        imgs.piloto.style.opacity = art;
+        const k = t >= 1.0 ? 0.025 * Math.exp(-(t - 1.0) * 9) : 0;
+        punch.style.transform = `scale(${1 + k})`;
+        cv.clear();
+        const ctx = cv.ctx;
+        drawCards(ctx, t);
+        drawTiles(ctx, t);
+        const mod = (pt) => {
+          if (!pt.who) return [1, 1];
+          const v = qOf(grids[pt.who].byK[pt.cell], t);
+          return [1 - v, 1 - 0.7 * v];
+        };
+        if (t < 2.0) field.draw(ctx, sCode, sLogos, seg(t, -0.25, 0.6), { t, spread: 0.5, arc: 0.18, shimmer: 0.03, mod, weight: 600, lift: 1.2 });
+        else field.draw(ctx, sLogos, sB, seg(t, 2.0, 2.5), { t, spread: 0.4, arc: 0.3, alpha: 1 - seg(t, 2.48, 2.6), shimmer: 0.04, lift: 1.4, weight: 600 });
+      }
+      const tl = gsap.timeline({ paused: true });
+      const proxy = { v: 0 };
+      tl.to(proxy, { v: 1, duration: 2.6, ease: "none", onUpdate: () => render(tl.time()) }, 0);
+      render(0);
+      window.__timelines["open"] = tl;
+    })();
+  </script>
+</template>
