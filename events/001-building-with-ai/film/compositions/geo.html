@@ -1,0 +1,71 @@
+<template>
+  <style>
+    @font-face { font-family: "BS Mono"; src: url("assets/fonts/JetBrainsMono-Medium.ttf") format("truetype"); font-weight: 500; }
+    @font-face { font-family: "BS Mono"; src: url("assets/fonts/JetBrainsMono-SemiBold.ttf") format("truetype"); font-weight: 600; }
+    #root { position: absolute; inset: 0; overflow: hidden; }
+    #geo-punch { position: absolute; inset: 0; }
+    #geo-code { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 50% 50%; font-family: "BS Mono", monospace; font-weight: 500; }
+    #geo-canvas { position: absolute; left: 0; top: 0; }
+  </style>
+  <div id="root" data-composition-id="geo" data-width="1920" data-height="1080">
+    <div id="geo-punch">
+      <div id="geo-code" data-layout-ignore></div>
+      <canvas id="geo-canvas"></canvas>
+    </div>
+  </div>
+  <script>
+    (function () {
+      // 0-10.95 s: the code ground under the open; the B lands at 2.5 s (poured from the logos),
+      // swings and unfolds into the flyer's architecture under the copy, folds back by 10.1 s,
+      // then peels toward the camera layer by layer while ink floods in for the speakers
+      const { kf, seg, lerp, INK, REEL, W, H, PL } = BS;
+      const layer = document.getElementById("geo-code");
+      layer.style.width = W + "px";
+      layer.style.height = H + "px";
+      BS.buildCode(layer);
+      const punch = document.getElementById("geo-punch");
+      punch.style.transformOrigin = `${W / 2}px ${H / 2}px`;
+      const cv = BS.setupCanvas(document.getElementById("geo-canvas"));
+      const ctx = cv.ctx;
+      const IMPACTS = [2.5];
+
+      function solidState(t) {
+        const m = kf(t, [[3.3, 0], [4.5, 1, "power2.inOut"], [9.65, 1], [10.1, 0, "power3.inOut"]]);
+        const e = kf(t, [[2.45, 0], [3.1, 1, "power2.out"]]);
+        const fill = kf(t, [[3.4, 1], [3.9, 0, "power1.in"]]);
+        const s = kf(t, [[2.6, 1], [2.95, 0, "power2.inOut"], [4.7, 0], [5.4, 1, "power2.inOut"]]);
+        const yaw = kf(t, [[2.6, 0], [3.4, -40, "power2.inOut"], [4.3, 30, "power2.inOut"], [5.3, 26]]);
+        const pitch = kf(t, [[2.6, 0], [3.4, 12], [4.3, 28], [5.3, 22]]);
+        const roll = kf(t, [[2.6, 0], [3.4, -5], [4.3, 0]]);
+        const F = kf(t, [[3.2, 2400], [3.6, 1700], [4.9, 1700], [5.4, 2400]]);
+        let hl;
+        for (const [a, b] of [[5.6, 6.8], [7.3, 8.5], [8.9, 9.6]]) if (t > a - 0.1 && t < b + 0.1) hl = lerp(-2, 20.5, seg(t, a, b, "power1.inOut"));
+        return { B: PL.HERO, A: PL.ARCH, m, e, fill, wArch: 2, hl, hlw: 3.5, alpha: seg(t, 2.44, 2.5) * (1 - seg(t, 10.1, 10.18)), cam: { s, yaw, pitch, roll, F } };
+      }
+
+      // through the B: its 14 outline layers peel toward the camera one at a time (BS.drawPeel),
+      // while ink lays in tile by tile from inside the stem (the speakers' world)
+      function drawTunnel(t) {
+        BS.drawTileFlood(ctx, BS.peelAnchor(PL.HERO), t, 10.42, 0.29, INK);
+        BS.drawPeel(ctx, PL.HERO, t, { T0: 10.16, alpha: seg(t, 10.06, 10.1) });
+      }
+
+      function render(t) {
+        cv.clear();
+        let k = 0;
+        for (const ti of IMPACTS) if (t >= ti) k += 0.035 * Math.exp(-(t - ti) * 9);
+        punch.style.transform = `scale(${1 + k})`;
+        // the code ground breathes in slightly over the intro
+        layer.style.transform = `scale(${1 + 0.04 * seg(t, 0, 10.3, "power1.inOut")})`;
+        if (t < 10.18) BS.drawSolid(ctx, solidState(t));
+        if (t >= 10.06) drawTunnel(t);
+      }
+
+      const tl = gsap.timeline({ paused: true });
+      const proxy = { v: 0 };
+      tl.to(proxy, { v: 1, duration: 10.95, ease: "none", onUpdate: () => render(tl.time()) }, 0);
+      render(0);
+      window.__timelines["geo"] = tl;
+    })();
+  </script>
+</template>

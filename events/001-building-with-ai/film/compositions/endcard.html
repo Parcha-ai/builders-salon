@@ -1,0 +1,109 @@
+<template>
+  <style>
+    @font-face { font-family: "BS Mono"; src: url("assets/fonts/JetBrainsMono-Medium.ttf") format("truetype"); font-weight: 500; }
+    @font-face { font-family: "BS Mono"; src: url("assets/fonts/JetBrainsMono-SemiBold.ttf") format("truetype"); font-weight: 600; }
+    #root { position: absolute; inset: 0; overflow: hidden; font-family: "BS Mono", monospace; color: var(--color-ink, #20221f); background: var(--color-ground, #f4f0e7); }
+    #ec-code { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; font-weight: 500; }
+    #ec-canvas { position: absolute; left: 0; top: 0; }
+    .ec-label { position: absolute; top: 60px; font-size: 28px; font-weight: 500; line-height: 1; letter-spacing: 0.02em; }
+    #ec-series { left: 120px; }
+    #ec-venue { right: 120px; text-align: right; }
+    .ec-rule { position: absolute; left: 120px; width: 1680px; height: 2px; background: var(--color-ink, #20221f); transform-origin: 0 50%; }
+    #ec-rule1 { top: 106px; }
+    #ec-rule2 { top: 896px; }
+    .ec-word { position: absolute; left: 246px; font-size: 57px; font-weight: 600; line-height: 1; white-space: nowrap; }
+    #ec-w1 { top: 150px; }
+    #ec-w2 { top: 214px; }
+    #ec-session { position: absolute; right: 124px; top: 148px; font-size: 28px; font-weight: 500; line-height: 1; }
+    #ec-num { position: absolute; right: 118px; top: 186px; font-size: 80px; font-weight: 600; line-height: 1; color: var(--color-accent, #d74327); }
+    .ec-head { position: absolute; left: 108px; font-size: 170px; font-weight: 600; line-height: 1; white-space: nowrap; }
+    #ec-h1 { top: 336px; }
+    #ec-h2 { top: 520px; }
+    #ec-ai { display: inline-block; margin-left: 0.3em; }
+    #ec-by { position: absolute; left: 120px; top: 928px; font-size: 36px; font-weight: 500; line-height: 1; white-space: pre; }
+    #ec-tag { position: absolute; right: 120px; top: 930px; font-size: 32px; font-weight: 500; line-height: 1; color: var(--color-accent, #d74327); white-space: pre; }
+  </style>
+  <div id="root" data-composition-id="endcard" data-width="1920" data-height="1080">
+    <div id="ec-code" data-layout-ignore></div>
+    <canvas id="ec-canvas"></canvas>
+    <div id="ec-series" class="ec-label">A CONVERSATION SERIES</div>
+    <div id="ec-venue" class="ec-label">PILOTO VENUES · SAN JUAN, PUERTO RICO</div>
+    <div id="ec-rule1" class="ec-rule"></div>
+    <div id="ec-w1" class="ec-word">The Builders’</div>
+    <div id="ec-w2" class="ec-word">Salon</div>
+    <div id="ec-session">SESSION</div>
+    <div id="ec-num">001</div>
+    <div id="ec-h1" class="ec-head">Building</div>
+    <div id="ec-h2" class="ec-head"><span>with</span><span id="ec-ai">AI</span></div>
+    <div id="ec-rule2" class="ec-rule"></div>
+    <div id="ec-by">Brought to you by Parcha Labs Inc and Piloto 151</div>
+    <div id="ec-tag">[ 01 ]</div>
+  </div>
+  <script>
+    (function () {
+      const { seg, REEL, W, H } = BS;
+      // 9:16: everything that reads sits between 196 and 1320 px; the code ground fills the rest
+      BS.lay(REEL && {
+        "ec-series": { left: "96px", top: "196px" },
+        "ec-rule1": { left: "96px", top: "244px", width: "888px" },
+        "ec-w1": { left: "240px", top: "300px" },
+        "ec-w2": { left: "240px", top: "364px" },
+        "ec-session": { right: "96px", top: "296px" },
+        "ec-num": { right: "90px", top: "334px" },
+        "ec-h1": { left: "80px", top: "500px" },
+        "ec-h2": { left: "80px", top: "684px" },
+        "ec-rule2": { left: "96px", top: "1140px", width: "888px" },
+        "ec-by": { left: "96px", top: "1168px", lineHeight: "1.3" },
+        "ec-venue": { left: "96px", right: "auto", top: "1292px", textAlign: "left" },
+        "ec-tag": { display: "none" },
+      });
+      if (REEL) document.getElementById("ec-by").textContent = "Brought to you by\nParcha Labs Inc and Piloto 151";
+      // global 25.0-30.0 s, under the speakers until their paper B covers the frame (25.3 s);
+      // the build runs on a child timeline offset by O
+      const O = 0.3;
+      const tl = gsap.timeline({ paused: true });
+      const b = gsap.timeline();
+      const codeHost = document.getElementById("ec-code");
+      codeHost.style.width = W + "px";
+      codeHost.style.height = H + "px";
+      BS.buildCode(codeHost);
+      const cv = BS.setupCanvas(document.getElementById("ec-canvas"));
+      const MARK = REEL ? { x: 96, y: 290, H: 118 } : { x: 116, y: 140, H: 118 };
+      const ARCH = REEL ? { x: 420, y: 885, s: 0.62 } : { x: 962, y: 496, s: 0.96 };
+
+      b.fromTo("#ec-code", { opacity: 0 }, { opacity: 1, duration: 0.35, ease: "power1.out" }, 0.0);
+      b.fromTo("#ec-rule1", { scaleX: 0 }, { scaleX: 1, duration: 0.6, ease: "expo.out" }, 0.05);
+      b.fromTo(".ec-label", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.15, stagger: 0.08 }, 0.15);
+      b.fromTo("#ec-w1", { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 0.45, ease: "expo.out" }, 0.3);
+      b.fromTo("#ec-w2", { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 0.45, ease: "expo.out" }, 0.38);
+      b.fromTo("#ec-session", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.15 }, 0.45);
+      b.fromTo("#ec-num", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.18 }, 0.5);
+      BS.construct(b, BS.splitConstruct(document.getElementById("ec-h1")), 0.35, 0.03);
+      BS.construct(b, BS.splitConstruct(document.getElementById("ec-h2")), 0.6, 0.03);
+      b.fromTo("#ec-rule2", { scaleX: 0 }, { scaleX: 1, duration: 0.6, ease: "expo.out" }, 0.75);
+      const by = BS.splitLetters(document.getElementById("ec-by"));
+      by.forEach((l) => { if (l.textContent === "\n") { l.textContent = ""; l.style.display = "block"; l.style.height = "10px"; } });
+      b.fromTo(by, { opacity: 0 }, { opacity: 1, duration: 0.01, ease: "none", stagger: 0.01 }, 0.8);
+      b.fromTo("#ec-tag", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.18 }, 1.4);
+
+      tl.add(b, O);
+
+      function render(gt) {
+        const t = gt - O;
+        cv.clear();
+        BS.drawSolid(cv.ctx, {
+          B: MARK, A: ARCH, m: 0, e: seg(t, 0.15, 0.75), fill: 1, alpha: seg(t, 0.1, 0.2),
+          cam: { s: 1 },
+        });
+        BS.drawSolid(cv.ctx, {
+          B: MARK, A: ARCH, m: 1, e: seg(t, 0.6, 1.6, "power1.inOut"), fill: 0, wArch: 1.8, alpha: seg(t, 0.55, 0.7),
+          cam: { s: 1 },
+        });
+      }
+      const proxy = { v: 0 };
+      tl.to(proxy, { v: 1, duration: 5.0, ease: "none", onUpdate: () => render(tl.time()) }, 0);
+      render(0);
+      window.__timelines["endcard"] = tl;
+    })();
+  </script>
+</template>

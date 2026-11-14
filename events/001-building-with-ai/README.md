@@ -13,6 +13,7 @@ The first session of **The Builders’ Salon**, a conversation series in Puerto 
 | [artwork/background-source.py.txt](artwork/background-source.py.txt) | The original generator, captured as the flyer’s source-code texture |
 | [assets/flyer.svg](assets/flyer.svg) | Editable vector flyer; 1200 × 1200; type outlined |
 | [assets/flyer.png](assets/flyer.png) | Ready-to-share flyer; 2400 × 2400 |
+| [film/](film/) | The 30-second session film, 16:9 and 9:16, with its score; all code |
 
 ## Rebuild
 
@@ -37,4 +38,4 @@ All lettering uses the included JetBrains Mono fonts. SVG lettering is converted
 
 The faint, full-background code is the actual original generator. Its source is stored separately as `background-source.py.txt` so formatting or reorganizing the current generator doesn't silently change the approved texture. It is treated as text, never executed by the build.
 
-The flyer includes the theme, hosts, and Puerto Rico. A date, venue, speaker list, and registration link have not been added. Add those here when confirmed; this folder can also grow to include demos, slides, notes, and recordings as they become available.
+The flyer includes the theme, hosts, and Puerto Rico. The [film](film/) adds the venue and the speaker line-up. A date and registration link have not been added. Add those here when confirmed; this folder can also grow to include demos, slides, notes, and recordings as they become available.

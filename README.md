@@ -10,7 +10,7 @@ We're open-sourcing our events: the code, the artwork, and the materials we crea
 
 | Session | Theme | Source and materials |
 | --- | --- | --- |
-| 001 | **Building with AI** | [Event folder](events/001-building-with-ai/) · [Generator](events/001-building-with-ai/artwork/generate.py) · [Flyer PNG](events/001-building-with-ai/assets/flyer.png) · [Flyer SVG](events/001-building-with-ai/assets/flyer.svg) |
+| 001 | **Building with AI** | [Event folder](events/001-building-with-ai/) · [Generator](events/001-building-with-ai/artwork/generate.py) · [Flyer PNG](events/001-building-with-ai/assets/flyer.png) · [Flyer SVG](events/001-building-with-ai/assets/flyer.svg) · [Film](events/001-building-with-ai/film/) |
 
 <img src="events/001-building-with-ai/assets/flyer.png" alt="Session 001 — Building with AI" width="520">
 
@@ -25,6 +25,7 @@ events/
     event.json                    Session details
     artwork/                      Generator + original code-background snapshot
     assets/                       Ready-to-use flyer, SVG + PNG
+    film/                         30-second film and score, all code (HyperFrames)
 scripts/
   verify_assets.py                Fresh-build and asset checks
 ```
@@ -59,6 +60,16 @@ python events/001-building-with-ai/artwork/generate.py --output-dir build/experi
 ```
 
 `make check` rebuilds in a temporary directory, verifies the SVGs match the checked-in artwork, and checks PNG sizes, transparency, and required attribution.
+
+## Render the film
+
+Session 001 has a 30-second film generated from code, music included. With Node 22+ and ffmpeg installed:
+
+```sh
+make film
+```
+
+It writes 16:9 and 9:16 MP4s to `events/001-building-with-ai/film/renders/`. The [film README](events/001-building-with-ai/film/README.md) explains how the pictures and the score are made.
 
 ## Contribute
 
